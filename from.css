@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Fredoka', sans-serif !important;
+}
+
+/* BODY */
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(
+        135deg,
+        #dff3ff,
+        #f0f9ff,
+        #cfeeff
+    );
+}
+
+/* CARD LOGIN */
+.form-container {
+    width: 100%;
+    max-width: 430px;
+    background-color: #ffffff;
+    padding: 35px;
+    border-radius: 22px;
+    border: 2px solid #bae6fd;
+    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.18);
+}
+
+/* ICON LOGIN */
+.login-icon {
+    text-align: center;
+    font-size: 50px;
+    margin-bottom: 8px;
+}
+
+/* JUDUL LOGIN */
+.form-container h2 {
+    text-align: center;
+    color: #0284c7;
+    font-size: 25px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+/* GROUP FORM */
+.form-group {
+    margin-bottom: 18px;
+}
+
+/* LABEL */
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    color: #0369a1;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* INPUT */
+.form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #bae6fd;
+    border-radius: 11px;
+    background-color: #f8fcff;
+    color: #0c4a6e;
+    font-size: 15px;
+    outline: none;
+    transition: 0.2s;
+}
+
+/* INPUT SAAT DIKLIK */
+.form-group input:focus {
+    border-color: #38bdf8;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+}
+
+/* TOMBOL LOGIN */
+.btn-submit {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 11px;
+    background-color: #38bdf8;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* HOVER TOMBOL */
+.btn-submit:hover {
+    background-color: #0284c7;
+    transform: translateY(-1px);
+}

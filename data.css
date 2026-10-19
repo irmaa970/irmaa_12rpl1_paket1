@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Fredoka', sans-serif !important;
+}
+
+body {
+  background-color: #f0f9ff !important;
+  color: #0c4a6e;
+  padding: 2.5rem !important;
+}
+
+h2, h3 {
+  color: #0284c7 !important;
+  margin-bottom: 0.8rem !important;
+}
+
+hr {
+  border: none !important;
+  border-top: 2px dashed #bae6fd !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* TABEL */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background-color: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.12) !important;
+  margin-top: 1rem !important;
+  margin-bottom: 5rem !important;
+  border: 1px solid #bae6fd !important;
+}
+
+th {
+  background-color: #38bdf8 !important;
+  color: #ffffff !important;
+  padding: 12px 14px !important;
+  text-align: left !important;
+}
+
+td {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+tr:nth-child(even) td {
+  background-color: #f8fafc !important;
+}
+
+/* TOMBOL DI DALAM TABEL */
+td button, td a button {
+  width: auto !important;
+  height: auto !important;
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+td a[href*="edit"] button, td a[href*="setujui"] button {
+  background-color: #38bdf8 !important;
+  color: white !important;
+}
+
+td a[href*="hapus"] button, td a[href*="tolak"] button {
+  background-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+/* TOMBOL TAMBAH DATA DI ATAS TABEL */
+a[href*="tambah.php"] {
+  display: inline-block !important;
+  margin-bottom: 1rem !important;
+  text-decoration: none !important;
+}
+
+a[href*="tambah.php"] button {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  padding: 8px 16px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+}
+
+/* MENU DASHBOARD HOME */
+.menu {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 1.2rem !important;
+  margin-top: 1rem !important;
+}
+
+.menu a button {
+  width: 190px !important;
+  height: 95px !important;
+  background-color: #ffffff !important;
+  color: #0284c7 !important;
+  border: 2px solid #bae6fd !important;
+  border-radius: 18px !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 15px rgba(56, 189, 248, 0.12) !important;
+}
+
+/* TOMBOL HOME / LOGOUT FLOATING POJOK KANAN BAWAH */
+.btn-floating, a[href*="home.php"], a[href*="logout.php"] {
+  position: fixed !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  z-index: 9999 !important;
+  text-decoration: none !important;
+}
+
+.btn-floating button, a[href*="home.php"] button, a[href*="logout.php"] button {
+  background-color: #38bdf8 !important;
+  color: #ffffff !important;
+  padding: 0.75rem 1.4rem !important;
+  border-radius: 99px !important;
+  border: none !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.35) !important;
+}
+
+a[href*="logout.php"] button {
+  background-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
