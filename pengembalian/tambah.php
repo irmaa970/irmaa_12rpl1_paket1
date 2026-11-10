@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Asia/Jakarta'); // Sinkronkan zona waktu ke WIB agar akurat
 include '../connection.php';
 
 if (!isset($_SESSION['username'])) {
@@ -10,46 +11,54 @@ if (!isset($_SESSION['username'])) {
 $role    = strtolower($_SESSION['role'] ?? 'peminjam');
 $id_user = $_SESSION['id_user'] ?? 0;
 
-// PROSES SIMPAN FORM PENGEMBALIAN OLEH SISWA (STOK BELUM BERTAMBAH)
+$pesan_error = '';
+
+// PROSES SIMPAN FORM PENGEMBALIAN OLEH SISWA
 if (isset($_POST['simpan_pengembalian'])) {
     $id_peminjaman   = $_POST['id_peminjaman'] ?? 0;
     $tanggal_kembali = $_POST['tanggal_kembali'] ?? date('Y-m-d');
     $kondisi_kembali = $_POST['kondisi_kembali'] ?? 'baik';
     
-    // Nilai awal denda = 0 & status denda otomatis 'menunggu diperiksa'
-    $denda        = 0;
-    $status_denda = 'menunggu diperiksa';
+    $hari_ini = date('Y-m-d');
 
-    if ($id_peminjaman > 0) {
-        // Mulai Transaksi Database untuk menjaga konsistensi data
-        mysqli_begin_transaction($conn);
+    // VALIDASI SERVER-SIDE: Tolak secara mutlak jika tanggal di masa lalu
+    if ($tanggal_kembali < $hari_ini) {
+        $pesan_error = "Tanggal pengembalian tidak boleh di masa lalu (sebelum hari ini)!";
+    } else {
+        // Nilai awal denda = 0 & status denda otomatis 'menunggu diperiksa'
+        $denda        = 0;
+        $status_denda = 'menunggu diperiksa';
 
-        try {
-            // 1. Insert data ke tabel pengembalian
-            $query_insert = "INSERT INTO pengembalian (id_peminjaman, tanggal_kembali, kondisi_kembali, denda, status_denda) 
-                             VALUES ('$id_peminjaman', '$tanggal_kembali', '$kondisi_kembali', '$denda', '$status_denda')";
-            if (!mysqli_query($conn, $query_insert)) {
-                throw new Exception("Gagal menyimpan data pengembalian.");
+        if ($id_peminjaman > 0) {
+            // Mulai Transaksi Database untuk menjaga konsistensi data
+            mysqli_begin_transaction($conn);
+
+            try {
+                // 1. Insert data ke tabel pengembalian
+                $query_insert = "INSERT INTO pengembalian (id_peminjaman, tanggal_kembali, kondisi_kembali, denda, status_denda) 
+                                 VALUES ('$id_peminjaman', '$tanggal_kembali', '$kondisi_kembali', '$denda', '$status_denda')";
+                if (!mysqli_query($conn, $query_insert)) {
+                    throw new Exception("Gagal menyimpan data pengembalian.");
+                }
+
+                // 2. Ubah status di tabel peminjaman menjadi 'proses pengembalian'
+                $query_update_peminjaman = "UPDATE peminjaman SET status = 'proses pengembalian' WHERE id_peminjaman = '$id_peminjaman'";
+                if (!mysqli_query($conn, $query_update_peminjaman)) {
+                    throw new Exception("Gagal memperbarui status peminjaman.");
+                }
+
+                // Commit transaksi jika semua query sukses
+                mysqli_commit($conn);
+                header("Location: tampil.php?pesan=pengajuan_sukses");
+                exit();
+
+            } catch (Exception $e) {
+                // Rollback jika terjadi kegagalan
+                mysqli_rollback($conn);
+                $pesan_error = "Error: " . $e->getMessage();
             }
-
-            // 2. Ubah status di tabel peminjaman menjadi 'proses pengembalian' (Stok belum bertambah)
-            $query_update_peminjaman = "UPDATE peminjaman SET status = 'proses pengembalian' WHERE id_peminjaman = '$id_peminjaman'";
-            if (!mysqli_query($conn, $query_update_peminjaman)) {
-                throw new Exception("Gagal memperbarui status peminjaman.");
-            }
-
-            // Catatan: Penambahan stok alat (UPDATE alat SET stok = stok + jumlah) 
-            // dipindahkan ke kelola pengembalian (tampil.php) saat petugas menekan tombol konfirmasi.
-
-            // Commit transaksi jika semua query sukses
-            mysqli_commit($conn);
-            header("Location: tampil.php?pesan=pengajuan_sukses");
-            exit();
-
-        } catch (Exception $e) {
-            // Rollback jika terjadi kegagalan
-            mysqli_rollback($conn);
-            echo "Error: " . $e->getMessage();
+        } else {
+            $pesan_error = "Pilih barang yang akan dikembalikan terlebih dahulu!";
         }
     }
 }
@@ -111,27 +120,36 @@ $data_pinjam = mysqli_query($conn, $q_pinjam);
             </a>
         </div>
 
+        <?php if (!empty($pesan_error)): ?>
+            <div class="alert alert-danger rounded-3 fw-semibold mb-3">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i><?= $pesan_error; ?>
+            </div>
+        <?php endif; ?>
+
         <div class="card card-custom p-4">
             <form action="" method="POST">
                 <div class="mb-3">
                     <label class="form-label">Pilih Barang yang Dipinjam</label>
                     <select name="id_peminjaman" class="form-select rounded-3" required>
                         <option value="">-- Pilih Barang --</option>
-                        <?php if ($data_pinjam && mysqli_num_rows($data_pinjam) > 0): ?>
-                            <?php while ($dp = mysqli_fetch_assoc($data_pinjam)): ?>
-                                <option value="<?= $dp['id_peminjaman']; ?>">
-                                    <?= htmlspecialchars($dp['nama_alat'] ?? 'Alat'); ?> (Pinjam: <?= $dp['tanggal_pinjam'] ?? '-'; ?>)
-                                </option>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <option value="" disabled>Tidak ada barang yang sedang dipinjam</option>
-                        <?php endif; ?>
+                        <?php 
+                        if ($data_pinjam && mysqli_num_rows($data_pinjam) > 0) {
+                            while ($dp = mysqli_fetch_assoc($data_pinjam)) {
+                                echo '<option value="' . $dp['id_peminjaman'] . '">';
+                                echo htmlspecialchars($dp['nama_alat'] ?? 'Alat') . ' (Pinjam: ' . ($dp['tanggal_pinjam'] ?? '-') . ')';
+                                echo '</option>';
+                            }
+                        } else {
+                            echo '<option value="" disabled>Tidak ada barang yang sedang dipinjam</option>';
+                        }
+                        ?>
                     </select>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Tanggal Pengembalian</label>
-                    <input type="date" name="tanggal_kembali" class="form-control rounded-3" value="<?= date('Y-m-d'); ?>" required>
+                    <!-- Atribut min mengunci kalender browser agar tanggal masa lalu tidak bisa diklik -->
+                    <input type="date" name="tanggal_kembali" class="form-control rounded-3" value="<?= date('Y-m-d'); ?>" min="<?= date('Y-m-d'); ?>" required>
                 </div>
 
                 <div class="mb-4">

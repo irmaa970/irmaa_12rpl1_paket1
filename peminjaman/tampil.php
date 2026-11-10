@@ -25,9 +25,8 @@ if (isset($_GET['aksi']) && isset($_GET['id'])) {
         $status_baru = 'Disetujui';
         $pesan       = 'disetujui';
         
-        // =========================================================================
+        
         // TAMBAHAN: KURANGI STOK ALAT SAAT PEMINJAMAN DISETUJUI
-        // =========================================================================
         $query_detail = "SELECT id_alat, jumlah FROM detail_peminjaman WHERE id_peminjaman = '$id_pinjam'";
         $res_detail   = mysqli_query($conn, $query_detail);
 
@@ -41,7 +40,7 @@ if (isset($_GET['aksi']) && isset($_GET['id'])) {
                 }
             }
         }
-        // =========================================================================
+    
 
     } elseif ($aksi == 'tolak') {
         $status_baru = 'Ditolak';

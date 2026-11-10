@@ -1,4 +1,4 @@
-<?php
+<?php // memproses pengembalian alat
 session_start();
 include '../connection.php';
 

@@ -7,13 +7,19 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
-// Header Mencegah Cache Browser (Mencegah user masuk lagi via tombol Back setelah logout)
+// Header Mencegah Cache Browser
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
 $username = $_SESSION['username'] ?? 'User';
-$role     = strtolower($_SESSION['role'] ?? 'peminjam'); 
+// Membersihkan spasi dan memastikan huruf kecil agar aman dari perbedaan data database
+$role     = strtolower(trim($_SESSION['role'] ?? 'peminjam')); 
+
+// Jika role kosong atau tidak terdaftar, jadikan default sebagai peminjam/siswa
+if (empty($role)) {
+    $role = 'peminjam';
+}
 ?>
 
 <!DOCTYPE html>
@@ -125,7 +131,7 @@ $role     = strtolower($_SESSION['role'] ?? 'peminjam');
         <div class="hero-banner mb-5 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <span class="badge bg-white text-primary rounded-pill px-3 py-2 mb-2 fw-bold text-uppercase">
-                    <i class="fa-solid fa-user-shield me-1"></i> Role: <?= htmlspecialchars($_SESSION['role'] ?? 'Peminjam'); ?>
+                    <i class="fa-solid fa-user-shield me-1"></i> Role: <?= htmlspecialchars(ucfirst($_SESSION['role'] ?? 'Peminjam')); ?>
                 </span>
                 <h2 class="fw-bold mb-1">Selamat datang, <?= htmlspecialchars($username); ?>! 👋</h2>
                 <p class="mb-0 opacity-90">
@@ -153,8 +159,8 @@ $role     = strtolower($_SESSION['role'] ?? 'peminjam');
 
             <div class="row g-4">
 
-                <!-- 1. MENU PEMINJAM / SISWA -->
-                <?php if ($role == 'peminjam' || $role == 'siswa') : ?>
+                <!-- 1. MENU PEMINJAM / SISWA (Ditampilkan juga jika role tidak dikenali agar tidak kosong) -->
+                <?php if ($role == 'peminjam' || $role == 'siswa' || ($role != 'admin' && $role != 'petugas')) : ?>
                     <div class="col-6 col-md-3">
                         <a href="alat/tampil.php" class="card card-menu h-100 p-4 text-center">
                             <div class="icon-box bg-info-subtle text-info mx-auto">
@@ -258,7 +264,7 @@ $role     = strtolower($_SESSION['role'] ?? 'peminjam');
                             <div class="icon-box bg-purple-subtle text-purple mx-auto" style="background:#f3e8ff; color:#9333ea;">
                                 <i class="fa-solid fa-tags"></i>
                             </div>
-                            <h6 class="fw-bold mb-1"> Kelola Kategori</h6>
+                            <h6 class="fw-bold mb-1">Kelola Kategori</h6>
                             <small class="text-muted">Kelola jenis barang</small>
                         </a>
                     </div>
@@ -337,7 +343,7 @@ $role     = strtolower($_SESSION['role'] ?? 'peminjam');
     <!-- FOOTER -->
     <footer class="py-3 text-center text-muted small">
         <div class="container">
-            <p class="mb-0">&copy; <?= date('Y'); ?> <strong>PinjamAlat</strong> — Paket 1 XII RPL 1. All rights reserved.</p>
+            <p class="mb-0">© <?= date('Y'); ?> <strong>PinjamAlat</strong> — Paket 1 XII RPL 1. All rights reserved.</p>
         </div>
     </footer>
 

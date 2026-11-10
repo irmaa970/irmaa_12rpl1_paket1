@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Asia/Jakarta'); // Sinkronkan waktu ke WIB agar akurat
 include '../connection.php';
 
 $db = isset($koneksi) ? $koneksi : (isset($conn) ? $conn : null);
@@ -34,34 +35,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
     $tanggal_rencana_kembali = mysqli_real_escape_string($db, $_POST['tanggal_rencana_kembali']);
     $jumlah                  = (int)$_POST['jumlah'];
 
-    // Ambil nama alat berdasarkan id_alat
-    $q_detail_alat = mysqli_query($db, "SELECT nama_alat, stok FROM alat WHERE id_alat = '$id_alat'");
-    $d_alat = mysqli_fetch_assoc($q_detail_alat);
-    $nama_alat = $d_alat['nama_alat'];
+    $hari_ini = date('Y-m-d');
 
-    if ($jumlah > $d_alat['stok']) {
-        $pesan_error = "Jumlah peminjaman melebihi stok yang tersedia!";
+    // VALIDASI SERVER-SIDE: Tolak jika tanggal di masa lalu
+    if ($tanggal_pinjam < $hari_ini) {
+        $pesan_error = "Tanggal pinjam tidak boleh di masa lalu (sebelum hari ini)!";
+    } elseif ($tanggal_rencana_kembali < $tanggal_pinjam) {
+        $pesan_error = "Tanggal rencana kembali tidak boleh sebelum tanggal pinjam!";
     } else {
-        // 1. Insert ke tabel peminjaman
-        $query_peminjaman = "INSERT INTO peminjaman (id_user, nama_peminjam, nama_alat, tanggal_pinjam, tanggal_rencana_kembali, status) 
-                            VALUES ('$id_user_login', '$nama_lengkap_login', '$nama_alat', '$tanggal_pinjam', '$tanggal_rencana_kembali', 'Menunggu')";
-        
-        if (mysqli_query($db, $query_peminjaman)) {
-            $id_peminjaman_baru = mysqli_insert_id($db);
+        // Ambil nama alat berdasarkan id_alat
+        $q_detail_alat = mysqli_query($db, "SELECT nama_alat, stok FROM alat WHERE id_alat = '$id_alat'");
+        $d_alat = mysqli_fetch_assoc($q_detail_alat);
+        $nama_alat = $d_alat['nama_alat'];
 
-            // 2. Insert ke tabel detail_peminjaman
-            $query_detail = "INSERT INTO detail_peminjaman (id_peminjaman, nama_peminjam, nama_alat, id_alat, jumlah) 
-                             VALUES ('$id_peminjaman_baru', '$nama_lengkap_login', '$nama_alat', '$id_alat', '$jumlah')";
-            mysqli_query($db, $query_detail);
-
-            // 3. Catat ke log_aktivitas
-            $aktivitas = "Mengajukan peminjaman " . $nama_alat;
-            mysqli_query($db, "INSERT INTO log_aktivitas (id_user, aktivitas) VALUES ('$id_user_login', '$aktivitas')");
-
-            echo "<script>alert('Pengajuan peminjaman berhasil dikirim!'); window.location.href='saya.php';</script>";
-            exit();
+        if ($jumlah > $d_alat['stok']) {
+            $pesan_error = "Jumlah peminjaman melebihi stok yang tersedia!";
         } else {
-            $pesan_error = "Gagal mengajukan peminjaman: " . mysqli_error($db);
+            // 1. Insert ke tabel peminjaman
+            $query_peminjaman = "INSERT INTO peminjaman (id_user, nama_peminjam, nama_alat, tanggal_pinjam, tanggal_rencana_kembali, status) 
+                                VALUES ('$id_user_login', '$nama_lengkap_login', '$nama_alat', '$tanggal_pinjam', '$tanggal_rencana_kembali', 'Menunggu')";
+            
+            if (mysqli_query($db, $query_peminjaman)) {
+                $id_peminjaman_baru = mysqli_insert_id($db);
+
+                // 2. Insert ke tabel detail_peminjaman
+                $query_detail = "INSERT INTO detail_peminjaman (id_peminjaman, nama_peminjam, nama_alat, id_alat, jumlah) 
+                                 VALUES ('$id_peminjaman_baru', '$nama_lengkap_login', '$nama_alat', '$id_alat', '$jumlah')";
+                mysqli_query($db, $query_detail);
+
+                // 3. Catat ke log_aktivitas
+                $aktivitas = "Mengajukan peminjaman " . $nama_alat;
+                mysqli_query($db, "INSERT INTO log_aktivitas (id_user, aktivitas) VALUES ('$id_user_login', '$aktivitas')");
+
+                echo "<script>alert('Pengajuan peminjaman berhasil dikirim!'); window.location.href='saya.php';</script>";
+                exit();
+            } else {
+                $pesan_error = "Gagal mengajukan peminjaman: " . mysqli_error($db);
+            }
         }
     }
 }
@@ -123,12 +133,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
 
         <div class="form-group">
             <label>Tanggal Pinjam</label>
-            <input type="date" name="tanggal_pinjam" value="<?= date('Y-m-d'); ?>" required>
+            <!-- Atribut min mengunci kalender HTML agar tanggal masa lalu tidak bisa dipilih -->
+            <input type="date" name="tanggal_pinjam" value="<?= date('Y-m-d'); ?>" min="<?= date('Y-m-d'); ?>" required>
         </div>
 
         <div class="form-group">
             <label>Tanggal Rencana Kembali</label>
-            <input type="date" name="tanggal_rencana_kembali" required>
+            <input type="date" name="tanggal_rencana_kembali" min="<?= date('Y-m-d'); ?>" required>
         </div>
 
         <button type="submit" name="submit" class="btn-submit">Kirim Pengajuan</button>

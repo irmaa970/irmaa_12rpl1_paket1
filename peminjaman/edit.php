@@ -2,104 +2,103 @@
 session_start();
 include '../connection.php';
 
-// Cek status login
-if (!isset($_SESSION['status_login']) || $_SESSION['status_login'] != true) {
-    header('Location: ../login.php');
-    exit();
+// Ambil role dari session (cek beberapa nama session yang umum)
+$user_role = strtolower($_SESSION['role'] ?? $_SESSION['level'] ?? '');
+
+// Pengecekan login & role
+if (!isset($_SESSION['username'])) {
+    die("<div style='padding:20px; font-family:sans-serif;'>
+            <h3>Akses Ditolak</h3>
+            <p>Anda belum login. Silakan <a href='../login.php'>Login</a> terlebih dahulu.</p>
+         </div>");
 }
 
-$id_peminjaman = $_GET['id'] ?? '';
-
-if (empty($id_peminjaman)) {
-    header('Location: tampil.php');
-    exit();
+if ($user_role !== 'admin' && $user_role !== 'petugas') {
+    die("<div style='padding:20px; font-family:sans-serif;'>
+            <h3>Akses Ditolak</h3>
+            <p>Halaman ini hanya untuk Admin atau Petugas. Role Anda saat ini: <b>" . htmlspecialchars($_SESSION['role'] ?? 'Kosong') . "</b></p>
+            <p><a href='../home.php'>Kembali ke Home</a></p>
+         </div>");
 }
 
-// Ambil data peminjaman saat ini
-$query_peminjaman = mysqli_query($conn, "SELECT * FROM peminjaman WHERE id_peminjaman = '$id_peminjaman'");
-$data_peminjaman = mysqli_fetch_assoc($query_peminjaman);
+// Ambil ID peminjaman dari URL (cek ?id= atau ?id_peminjaman=)
+$id_peminjaman = $_GET['id'] ?? $_GET['id_peminjaman'] ?? 0;
 
-if (!$data_peminjaman) {
-    echo "<script>alert('Data peminjaman tidak ditemukan!'); window.location='tampil.php';</script>";
-    exit();
+if ($id_peminjaman <= 0) {
+    die("<div style='padding:20px; font-family:sans-serif;'>
+            <h3>ID Tidak Valid</h3>
+            <p>ID Peminjaman tidak ditemukan di URL.</p>
+            <p><a href='tampil.php'>Kembali ke Data Peminjaman</a></p>
+         </div>");
 }
 
-// Proses Update Status Peminjaman
-if (isset($_POST['update'])) {
-    $status_baru = $_POST['status'];
-    $status_lama = $data_peminjaman['status'];
+// Ambil data peminjaman berdasarkan ID
+$query  = "SELECT * FROM peminjaman WHERE id_peminjaman = '$id_peminjaman'";
+$result = mysqli_query($conn, $query);
+$data   = mysqli_fetch_assoc($result);
 
-    mysqli_begin_transaction($conn);
+if (!$data) {
+    die("<div style='padding:20px; font-family:sans-serif;'>
+            <h3>Data Tidak Ditemukan</h3>
+            <p>Data peminjaman dengan ID $id_peminjaman tidak ada di database.</p>
+            <p><a href='tampil.php'>Kembali ke Data Peminjaman</a></p>
+         </div>");
+}
 
-    try {
-        // 1. Jika status berubah dari selain 'Disetujui' menjadi 'Disetujui', kurangi stok alat
-        if ($status_lama != 'Disetujui' && $status_baru == 'Disetujui') {
-            $q_detail = mysqli_query($conn, "SELECT d.id_alat, d.jumlah, a.nama_alat, a.stok 
-                                             FROM detail_peminjaman d 
-                                             JOIN alat a ON d.id_alat = a.id_alat 
-                                             WHERE d.id_peminjaman = '$id_peminjaman'");
+// Proses update saat form disubmit
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $status = $_POST['status'] ?? '';
+    
+    // Update data peminjaman
+    $update_query = "UPDATE peminjaman SET status = '$status' WHERE id_peminjaman = '$id_peminjaman'";
+    $update_res   = mysqli_query($conn, $update_query);
 
-            while ($row = mysqli_fetch_assoc($q_detail)) {
-                if ($row['stok'] < $row['jumlah']) {
-                    throw new Exception("Stok alat '" . $row['nama_alat'] . "' tidak mencukupi (Sisa: " . $row['stok'] . ")");
-                }
-                
-                // Kurangi stok alat
-                $id_alat = $row['id_alat'];
-                $jumlah  = $row['jumlah'];
-                mysqli_query($conn, "UPDATE alat SET stok = stok - $jumlah WHERE id_alat = '$id_alat'");
-            }
-        } 
-        // 2. Jika tadinya 'Disetujui' lalu dibatalkan/ditolak, kembalikan stok alat
-        elseif ($status_lama == 'Disetujui' && $status_baru != 'Disetujui' && $status_baru != 'Dikembalikan') {
-            $q_detail = mysqli_query($conn, "SELECT id_alat, jumlah FROM detail_peminjaman WHERE id_peminjaman = '$id_peminjaman'");
-            while ($row = mysqli_fetch_assoc($q_detail)) {
-                $id_alat = $row['id_alat'];
-                $jumlah  = $row['jumlah'];
-                mysqli_query($conn, "UPDATE alat SET stok = stok + $jumlah WHERE id_alat = '$id_alat'");
-            }
-        }
-
-        // Update status pada tabel peminjaman
-        mysqli_query($conn, "UPDATE peminjaman SET status = '$status_baru' WHERE id_peminjaman = '$id_peminjaman'");
-
-        mysqli_commit($conn);
-        echo "<script>alert('Status peminjaman berhasil diperbarui!'); window.location='tampil.php';</script>";
-
-    } catch (Exception $e) {
-        mysqli_rollback($conn);
-        echo "<script>alert('Gagal memproses: " . $e->getMessage() . "');</script>";
+    if ($update_res) {
+        header("Location: tampil.php?pesan=update_berhasil");
+        exit();
+    } else {
+        $error = "Gagal memperbarui data peminjaman.";
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Edit Status Peminjaman</title>
-    <link rel="stylesheet" href="../from.css">
+    <title>Edit Peminjaman</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Fredoka', sans-serif; background-color: #f0f9ff; color: #334155; }
+        .card-custom { border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #ffffff; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Edit Status Peminjaman</h2>
-        <form action="" method="POST">
-            <div class="form-group">
-                <label>ID Peminjaman</label>
-                <input type="text" value="<?= $data_peminjaman['id_peminjaman']; ?>" disabled>
-            </div>
-            <div class="form-group">
-                <label>Status Peminjaman</label>
-                <select name="status" required>
-                    <option value="Menunggu" <?= $data_peminjaman['status'] == 'Menunggu' ? 'selected' : ''; ?>>Menunggu</option>
-                    <option value="Disetujui" <?= $data_peminjaman['status'] == 'Disetujui' ? 'selected' : ''; ?>>Disetujui</option>
-                    <option value="Ditolak" <?= $data_peminjaman['status'] == 'Ditolak' ? 'selected' : ''; ?>>Ditolak</option>
-                    <option value="Dikembalikan" <?= $data_peminjaman['status'] == 'Dikembalikan' ? 'selected' : ''; ?>>Dikembalikan</option>
-                </select>
-            </div>
-            <button type="submit" name="update" class="btn">Simpan Perubahan</button>
-            <a href="tampil.php" class="btn-back">Batal</a>
-        </form>
+    <div class="container my-5" style="max-width: 600px;">
+        <div class="card card-custom p-4">
+            <h4 class="fw-bold text-primary mb-3">Edit Status Peminjaman</h4>
+
+            <?php if (isset($error)): ?>
+                <div class="alert alert-danger"><?= $error; ?></div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Status Peminjaman</label>
+                    <select name="status" class="form-select" required>
+                        <option value="Menunggu ACC" <?= ($data['status'] == 'Menunggu ACC') ? 'selected' : ''; ?>>Menunggu ACC</option>
+                        <option value="Disetujui" <?= ($data['status'] == 'Disetujui') ? 'selected' : ''; ?>>Disetujui / Dipinjam</option>
+                        <option value="Ditolak" <?= ($data['status'] == 'Ditolak') ? 'selected' : ''; ?>>Ditolak</option>
+                        <option value="Selesai" <?= ($data['status'] == 'Selesai') ? 'selected' : ''; ?>>Selesai / Dikembalikan</option>
+                    </select>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="tampil.php" class="btn btn-secondary rounded-pill px-4">Batal</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 </html>
